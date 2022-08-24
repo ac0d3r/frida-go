@@ -4,16 +4,16 @@ package fridago
 import "C"
 
 type SpawnOptions struct {
-	ptr *C.FridaSpawnOptions
+	handle *C.FridaSpawnOptions
 }
 
 func NewSpawnOptions() *SpawnOptions {
-	return &SpawnOptions{ptr: C.frida_spawn_options_new()}
+	return &SpawnOptions{handle: C.frida_spawn_options_new()}
 }
 
 func (s *SpawnOptions) Free() {
-	C.g_object_unref(C.gpointer(s.ptr))
-	s.ptr = nil
+	C.g_object_unref(C.gpointer(s.handle))
+	s.handle = nil
 }
 
 // TODO
@@ -22,15 +22,15 @@ func (s *SpawnOptions) Free() {
 
 func (s *SpawnOptions) SetArgv(args []string) {
 	gchar, length := SliceToGStrings(args)
-	C.frida_spawn_options_set_argv(s.ptr, gchar, length)
+	C.frida_spawn_options_set_argv(s.handle, gchar, length)
 }
 
 func (s *SpawnOptions) SetCwd(cwd string) {
-	C.frida_spawn_options_set_cwd(s.ptr, C.CString(cwd))
+	C.frida_spawn_options_set_cwd(s.handle, C.CString(cwd))
 }
 
 func (s *SpawnOptions) SetStdio(stdio uint) {
-	C.frida_spawn_options_set_stdio(s.ptr, C.FridaStdio(stdio))
+	C.frida_spawn_options_set_stdio(s.handle, C.FridaStdio(stdio))
 }
 
 type Spawn struct {

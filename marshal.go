@@ -19,14 +19,7 @@ const (
 	FridaRealmEmulated = uint(C.FRIDA_REALM_EMULATED)
 )
 
-// frida script runtime enum
-const (
-	FridaScriptRuntimeDefault = uint(C.FRIDA_SCRIPT_RUNTIME_DEFAULT)
-	FridaScriptRuntimeQJS     = uint(C.FRIDA_SCRIPT_RUNTIME_QJS)
-	FridaScriptRuntimeV8      = uint(C.FRIDA_SCRIPT_RUNTIME_V8)
-)
-
-func GbooleanToBool(gb C.gboolean) bool {
+func Gbool(gb C.gboolean) bool {
 	return int(gb) != 0
 }
 

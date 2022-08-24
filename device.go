@@ -28,7 +28,7 @@ const (
 )
 
 type Device struct {
-	ptr *C.FridaDevice
+	handle *C.FridaDevice
 
 	ID   string
 	Name string
@@ -36,18 +36,18 @@ type Device struct {
 }
 
 func NewDevice(fd *C.FridaDevice) *Device {
-	d := &Device{ptr: fd}
-	d.fromFridaDevice()
+	d := &Device{handle: fd}
+	d.fridaDeviceInfo()
 	return d
 }
 
 func (d *Device) Free() {
-	C.g_object_unref(C.gpointer(d.ptr))
-	d.ptr = nil
+	C.g_object_unref(C.gpointer(d.handle))
+	d.handle = nil
 }
 
 func (d *Device) IsLost() bool {
-	return GbooleanToBool(C.frida_device_is_lost(d.ptr))
+	return Gbool(C.frida_device_is_lost(d.handle))
 }
 
 func (d *Device) Description() string {
@@ -66,7 +66,7 @@ func (d *Device) Spawn(program string, opts ...*SpawnOptions) (uint, error) {
 	}
 	defer opt.Free()
 
-	pid := uint(C.frida_device_spawn_sync(d.ptr, C.CString(program), opt.ptr, nil, &gerr))
+	pid := uint(C.frida_device_spawn_sync(d.handle, C.CString(program), opt.handle, nil, &gerr))
 	if gerr != nil {
 		return 0, NewGError(gerr)
 	}
@@ -76,7 +76,7 @@ func (d *Device) Spawn(program string, opts ...*SpawnOptions) (uint, error) {
 func (d *Device) Resume(pid uint) error {
 	var gerr *C.GError
 
-	C.frida_device_resume_sync(d.ptr, C.guint(pid), nil, &gerr)
+	C.frida_device_resume_sync(d.handle, C.guint(pid), nil, &gerr)
 	if gerr != nil {
 		return NewGError(gerr)
 	}
@@ -95,16 +95,16 @@ func (d *Device) Attach(pid uint, opts ...*SessionOptions) (*Session, error) {
 	}
 	defer opt.Free()
 
-	session := C.frida_device_attach_sync(d.ptr, C.guint(pid), opt.ptr, nil, &gerr)
+	session := C.frida_device_attach_sync(d.handle, C.guint(pid), opt.handle, nil, &gerr)
 	if gerr != nil {
 		return nil, NewGError(gerr)
 	}
-	return NewSession(d, session), nil
+	return NewSession(session), nil
 }
 
-func (d *Device) fromFridaDevice() {
-	d.Name = C.GoString(C.frida_device_get_name(d.ptr))
-	d.ID = C.GoString(C.frida_device_get_id(d.ptr))
-	d.Kind = DeviceType(C.frida_device_get_dtype(d.ptr))
+func (d *Device) fridaDeviceInfo() {
+	d.Name = C.GoString(C.frida_device_get_name(d.handle))
+	d.ID = C.GoString(C.frida_device_get_id(d.handle))
+	d.Kind = DeviceType(C.frida_device_get_dtype(d.handle))
 	return
 }

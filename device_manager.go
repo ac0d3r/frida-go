@@ -4,11 +4,11 @@ package fridago
 import "C"
 
 type DeviceManager struct {
-	ptr *C.FridaDeviceManager
+	handle *C.FridaDeviceManager
 }
 
 func NewDeviceManager() *DeviceManager {
-	return &DeviceManager{ptr: C.frida_device_manager_new()}
+	return &DeviceManager{handle: C.frida_device_manager_new()}
 }
 
 // TODO
@@ -18,28 +18,23 @@ func NewDeviceManager() *DeviceManager {
 func (dm *DeviceManager) Close() error {
 	var gerr *C.GError
 
-	C.frida_device_manager_close_sync(dm.ptr, nil, &gerr)
+	C.frida_device_manager_close_sync(dm.handle, nil, &gerr)
 	if gerr != nil {
 		return NewGError(gerr)
 	}
 
-	C.g_object_unref(C.gpointer(dm.ptr))
-	dm.ptr = nil
+	C.g_object_unref(C.gpointer(dm.handle))
+	dm.handle = nil
 	return nil
 }
 
 func (dm *DeviceManager) EnumerateDevices() ([]*Device, error) {
 	var gerr *C.GError
 
-	devices := C.frida_device_manager_enumerate_devices_sync(dm.ptr, nil, &gerr)
+	devices := C.frida_device_manager_enumerate_devices_sync(dm.handle, nil, &gerr)
 	if gerr != nil {
 		return nil, NewGError(gerr)
 	}
-
-	defer func() {
-		C.g_object_unref(C.gpointer(devices))
-		devices = nil
-	}()
 
 	size := int(C.frida_device_list_size(devices))
 	dl := make([]*Device, size)
@@ -47,5 +42,9 @@ func (dm *DeviceManager) EnumerateDevices() ([]*Device, error) {
 		fd := C.frida_device_list_get(devices, C.int(i))
 		dl[i] = NewDevice(fd)
 	}
+
+	C.g_object_unref(C.gpointer(devices))
+	devices = nil
+
 	return dl, nil
 }
