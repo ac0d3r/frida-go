@@ -106,5 +106,4 @@ func (d *Device) fridaDeviceInfo() {
 	d.Name = C.GoString(C.frida_device_get_name(d.handle))
 	d.ID = C.GoString(C.frida_device_get_id(d.handle))
 	d.Kind = DeviceType(C.frida_device_get_dtype(d.handle))
-	return
 }

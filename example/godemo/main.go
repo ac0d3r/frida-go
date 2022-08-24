@@ -17,28 +17,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var device *fridago.Device
+	var usbDevice *fridago.Device
 	for _, d := range devices {
 		if d.Kind == fridago.DeviceTypeUsb {
-			device = d
+			usbDevice = d
 			continue
 		}
 		d.Free()
 	}
-	if device == nil {
+	if usbDevice == nil {
 		return
 	}
 
-	log.Println(device.Description())
-	defer device.Free()
-	pid, err := device.Spawn("com.zznq.demo01")
+	fmt.Println(usbDevice.Description())
+	defer usbDevice.Free()
+
+	app := "com.zznq.demo01"
+	pid, err := usbDevice.Spawn("com.zznq.demo01")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Spawn %s pid: %d error:%v", app, pid, err)
 	}
-	device.Resume(pid)
-	session, err := device.Attach(pid)
+	usbDevice.Resume(pid)
+	session, err := usbDevice.Attach(pid)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Attach pid: %d error:%v", pid, err)
 	}
 	defer session.Detach()
 
@@ -58,7 +60,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer script.UnLoad()
-	script.Load()
+	if err := script.Load(); err != nil {
+		log.Println("load error: ", err)
+	}
+	script.SetOnMessageHandler(func(s string) {
+		fmt.Println("[message]->", s)
+	})
 
 	// hang
 	var s string
