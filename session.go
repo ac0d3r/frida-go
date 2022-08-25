@@ -16,27 +16,6 @@ void _session_on_detached(FridaSession *session,
 import "C"
 import "unsafe"
 
-type SessionOptions struct {
-	handle *C.FridaSessionOptions
-}
-
-func NewSessionOptions() *SessionOptions {
-	return &SessionOptions{handle: C.frida_session_options_new()}
-}
-
-func (so *SessionOptions) Free() {
-	C.g_object_unref(C.gpointer(so.handle))
-	so.handle = nil
-}
-
-func (so *SessionOptions) SetRealm(realm uint) {
-	C.frida_session_options_set_realm(so.handle, C.FridaRealm(realm))
-}
-
-func (so *SessionOptions) SetPersistTimeout(timeout uint) {
-	C.frida_session_options_set_persist_timeout(so.handle, C.guint(timeout))
-}
-
 type Session struct {
 	handle            *C.FridaSession
 	onDetachedHandler C.gulong
@@ -64,7 +43,7 @@ func (s *Session) PersistTimeout() uint {
 }
 
 func (s *Session) IsDetached() bool {
-	return Gbool(C.frida_session_is_detached(s.handle))
+	return cbool(C.frida_session_is_detached(s.handle))
 }
 
 func (s *Session) Detach() error {

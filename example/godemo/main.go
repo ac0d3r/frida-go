@@ -26,7 +26,6 @@ func main() {
 			usbDevice = d
 			continue
 		}
-		d.Free()
 	}
 	if usbDevice == nil {
 		return
@@ -36,7 +35,7 @@ func main() {
 	defer usbDevice.Free()
 
 	app := "com.zznq.demo01"
-	pid, err := usbDevice.Spawn("com.zznq.demo01")
+	pid, err := usbDevice.Spawn(app)
 	if err != nil {
 		log.Fatalf("Spawn %s pid: %d error:%v", app, pid, err)
 	}

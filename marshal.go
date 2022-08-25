@@ -7,37 +7,21 @@ import (
 	"unsafe"
 )
 
-// frida stdio enum
-const (
-	FridaStdioInherit = uint(C.FRIDA_STDIO_INHERIT)
-	FridaStdioPipe    = uint(C.FRIDA_STDIO_PIPE)
-)
-
-// frida realm enum
-const (
-	FridaRealmNative   = uint(C.FRIDA_REALM_NATIVE)
-	FridaRealmEmulated = uint(C.FRIDA_REALM_EMULATED)
-)
-
-func Gbool(gb C.gboolean) bool {
+func cbool(gb C.gboolean) bool {
 	return int(gb) != 0
 }
 
-func GStringsToSlice(gs **C.gchar, length C.gint) []string {
+func carray2slice(gs **C.gchar, length C.gint) []string {
 	lens := int(length)
-	if lens > 0 {
-		// https://stackoverflow.com/questions/48756732/what-does-1-30c-yourtype-do-exactly-in-cgo
-		arr := (*[1 << 30]*C.gchar)(unsafe.Pointer(gs))
-		strs := make([]string, lens)
-		for i := 0; i < lens; i++ {
-			strs[i] = C.GoString(arr[i])
-		}
-		return strs
+	arr := unsafe.Slice(gs, length)
+	strs := make([]string, lens)
+	for i := 0; i < lens; i++ {
+		strs[i] = C.GoString(arr[i])
 	}
-	return nil
+	return strs
 }
 
-func SliceToGStrings(strs []string) (**C.gchar, C.gint) {
+func slice2carray(strs []string) (**C.gchar, C.gint) {
 	buf := make([]*C.gchar, len(strs))
 	for i := range strs {
 		buf[i] = (*C.gchar)(unsafe.Pointer(C.CString(strs[i])))

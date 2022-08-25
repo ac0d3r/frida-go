@@ -37,12 +37,6 @@ import (
 	"unsafe"
 )
 
-const (
-	FridaScriptRuntimeDefault = uint(C.FRIDA_SCRIPT_RUNTIME_DEFAULT)
-	FridaScriptRuntimeQJS     = uint(C.FRIDA_SCRIPT_RUNTIME_QJS)
-	FridaScriptRuntimeV8      = uint(C.FRIDA_SCRIPT_RUNTIME_V8)
-)
-
 type Script struct {
 	handle           *C.FridaScript
 	onMessageHandler C.gulong
