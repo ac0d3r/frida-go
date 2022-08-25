@@ -1,7 +1,20 @@
 package fridago
 
-//#include "frida-core.h"
+/*
+#include "frida-core.h"
+
+void onDetached(FridaSession *session);
+
+void _session_on_detached(FridaSession *session,
+            FridaSessionDetachReason reason,
+            FridaCrash *crash,
+            gpointer user_data)
+{
+	onDetached(session);
+}
+*/
 import "C"
+import "unsafe"
 
 type SessionOptions struct {
 	handle *C.FridaSessionOptions
@@ -11,22 +24,23 @@ func NewSessionOptions() *SessionOptions {
 	return &SessionOptions{handle: C.frida_session_options_new()}
 }
 
-func (s *SessionOptions) Free() {
-	C.g_object_unref(C.gpointer(s.handle))
-	s.handle = nil
+func (so *SessionOptions) Free() {
+	C.g_object_unref(C.gpointer(so.handle))
+	so.handle = nil
 }
 
-func (s *SessionOptions) SetRealm(realm uint) {
-	C.frida_session_options_set_realm(s.handle, C.FridaRealm(realm))
+func (so *SessionOptions) SetRealm(realm uint) {
+	C.frida_session_options_set_realm(so.handle, C.FridaRealm(realm))
 }
 
-func (s *SessionOptions) SetPersistTimeout(timeout uint) {
-	C.frida_session_options_set_persist_timeout(s.handle, C.guint(timeout))
+func (so *SessionOptions) SetPersistTimeout(timeout uint) {
+	C.frida_session_options_set_persist_timeout(so.handle, C.guint(timeout))
 }
 
 type Session struct {
-	handle       *C.FridaSession
-	pid, timeout uint
+	handle            *C.FridaSession
+	onDetachedHandler C.gulong
+	pid, timeout      uint
 }
 
 func NewSession(s *C.FridaSession) *Session {
@@ -60,6 +74,12 @@ func (s *Session) Detach() error {
 	if gerr != nil {
 		return NewGError(gerr)
 	}
+
+	if s.onDetachedHandler != 0 {
+		C.g_signal_handler_disconnect(C.gpointer(s.handle), s.onDetachedHandler)
+		s.onDetachedHandler = 0
+	}
+
 	C.g_object_unref(C.gpointer(s.handle))
 	s.handle = nil
 	return nil
@@ -90,4 +110,15 @@ func (s *Session) CreateScript(name string, source string, runtime ...uint) (*Sc
 		return nil, NewGError(gerr)
 	}
 	return NewScript(fscript, name), nil
+}
+
+func (s *Session) SetOnDetachedHandler(ch chan<- struct{}) {
+	if s.onDetachedHandler == 0 {
+		s.onDetachedHandler = C.g_signal_connect_data(
+			C.gpointer(s.handle),
+			C.CString("detached"),
+			C.GCallback(unsafe.Pointer(C._session_on_detached)),
+			nil, nil, 0)
+	}
+	cbs.Store(uintptr(C.gpointer(s.handle)), ch)
 }

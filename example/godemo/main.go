@@ -4,6 +4,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Buzz2d0/fridago"
 )
@@ -44,6 +47,9 @@ func main() {
 	}
 	defer session.Detach()
 
+	quit := make(chan struct{}, 1)
+	session.SetOnDetachedHandler(quit)
+
 	var javascript = `
 	console.log("Script loaded successfully ");
 	Java.perform(function x() {
@@ -67,8 +73,12 @@ func main() {
 		fmt.Println("[message]->", s)
 	})
 
-	// hang
-	var s string
-	fmt.Print("hang...(Enter cancel)")
-	fmt.Scanln(&s)
+	var sigs = make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-quit:
+	case <-sigs:
+	}
+	fmt.Println("zznQ bye!")
 }

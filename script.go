@@ -5,7 +5,11 @@ package fridago
 
 void onMessage(FridaScript * script, const gchar * message);
 
-void _on_message(FridaScript * script, const gchar * message, GBytes * data, gpointer user_data) {
+void _script_on_message(FridaScript * script,
+	const gchar * message,
+	GBytes * data,
+	gpointer user_data)
+{
 	JsonParser *parser;
 	JsonObject *root;
 	const gchar *type;
@@ -16,11 +20,13 @@ void _on_message(FridaScript * script, const gchar * message, GBytes * data, gpo
 
 
 	type = json_object_get_string_member(root, "type");
-	if (strcmp(type, "log") == 0){
+	if (strcmp(type, "log") == 0)
+	{
 		const gchar *log_message;
 		log_message = json_object_get_string_member(root, "payload");
 		onMessage(script, log_message);
-	}else{
+	}else
+	{
 		onMessage(script, message);
 	}
 	g_object_unref(parser);
@@ -87,7 +93,7 @@ func (s *Script) SetOnMessageHandler(callback ScriptMessageHandler) {
 		s.onMessageHandler = C.g_signal_connect_data(
 			C.gpointer(s.handle),
 			C.CString("message"),
-			C.GCallback(unsafe.Pointer(C._on_message)),
+			C.GCallback(unsafe.Pointer(C._script_on_message)),
 			nil, nil, 0)
 	}
 	cbs.Store(uintptr(C.gpointer(s.handle)), callback)
