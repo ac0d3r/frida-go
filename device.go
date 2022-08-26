@@ -30,15 +30,13 @@ const (
 type Device struct {
 	handle *C.FridaDevice
 
-	ID   string
-	Name string
-	Kind DeviceType
+	id   string
+	name string
+	kind DeviceType
 }
 
 func NewDevice(fd *C.FridaDevice) *Device {
-	d := &Device{handle: fd}
-	d.fridaDeviceInfo()
-	return d
+	return &Device{handle: fd}
 }
 
 func (d *Device) Free() {
@@ -46,12 +44,33 @@ func (d *Device) Free() {
 	d.handle = nil
 }
 
+func (d *Device) ID() string {
+	if d.id == "" {
+		d.id = C.GoString(C.frida_device_get_id(d.handle))
+	}
+	return d.id
+}
+
+func (d *Device) Kind() DeviceType {
+	if d.kind == 0 {
+		d.kind = DeviceType(C.frida_device_get_dtype(d.handle))
+	}
+	return d.kind
+}
+
+func (d *Device) Name() string {
+	if d.name == "" {
+		d.name = C.GoString(C.frida_device_get_name(d.handle))
+	}
+	return d.name
+}
+
 func (d *Device) IsLost() bool {
 	return cbool(C.frida_device_is_lost(d.handle))
 }
 
 func (d *Device) Description() string {
-	return fmt.Sprintf("Frida.Device(id: \"%s\", name: \"%s\", kind: \"%s\")", d.ID, d.Name, d.Kind.String())
+	return fmt.Sprintf("Frida.Device(id: \"%s\", name: \"%s\", kind: \"%s\")", d.ID(), d.Name(), d.Kind().String())
 }
 
 type SpawnOptions struct {
@@ -94,6 +113,26 @@ func (d *Device) Spawn(program string, so ...SpawnOptions) (uint, error) {
 	return pid, nil
 }
 
+func (d *Device) GetProcessByName(name string) (uint, error) {
+	var gerr *C.GError
+	opts := C.frida_process_match_options_new()
+	defer func() {
+		C.g_object_unref(C.gpointer(opts))
+		opts = nil
+	}()
+
+	process := C.frida_device_get_process_by_name_sync(d.handle, C.CString(name), opts, nil, &gerr)
+	if gerr != nil {
+		return 0, NewGError(gerr)
+	}
+
+	pid := uint(C.frida_process_get_pid(process))
+	C.g_object_unref(C.gpointer(process))
+	process = nil
+
+	return pid, nil
+}
+
 func (d *Device) Resume(pid uint) error {
 	var gerr *C.GError
 
@@ -131,10 +170,4 @@ func (d *Device) Attach(pid uint, so ...SessionOptions) (*Session, error) {
 		return nil, NewGError(gerr)
 	}
 	return NewSession(session), nil
-}
-
-func (d *Device) fridaDeviceInfo() {
-	d.Name = C.GoString(C.frida_device_get_name(d.handle))
-	d.ID = C.GoString(C.frida_device_get_id(d.handle))
-	d.Kind = DeviceType(C.frida_device_get_dtype(d.handle))
 }

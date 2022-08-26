@@ -12,25 +12,16 @@ import (
 )
 
 func main() {
+	fmt.Println(fridago.Version())
+
 	manager := fridago.NewDeviceManager()
 	defer manager.Close()
 
-	devices, err := manager.EnumerateDevices()
+	usbDevice, err := manager.GetUsbDevice()
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	var usbDevice *fridago.Device
-	for _, d := range devices {
-		if d.Kind == fridago.DeviceTypeUsb {
-			usbDevice = d
-			continue
-		}
-	}
-	if usbDevice == nil {
+		fmt.Println(err)
 		return
 	}
-
 	fmt.Println(usbDevice.Description())
 	defer usbDevice.Free()
 
@@ -79,5 +70,5 @@ func main() {
 	case <-quit:
 	case <-sigs:
 	}
-	fmt.Println("zznQ bye!")
+	fmt.Println("fridago bye!")
 }

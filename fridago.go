@@ -3,6 +3,10 @@ package fridago
 //#include "frida-core.h"
 import "C"
 
+func Version() string {
+	return C.GoString(C.frida_version_string())
+}
+
 // frida stdio enum
 const (
 	StdioInherit = uint(C.FRIDA_STDIO_INHERIT)

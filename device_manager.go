@@ -2,6 +2,14 @@ package fridago
 
 //#include "frida-core.h"
 import "C"
+import (
+	"errors"
+	"fmt"
+)
+
+var (
+	ErrNotFoundUsbDevice = errors.New("not found usb device")
+)
 
 type DeviceManager struct {
 	handle *C.FridaDeviceManager
@@ -102,4 +110,18 @@ func (dm *DeviceManager) RemoveRemoteDevice(address string) error {
 		return NewGError(gerr)
 	}
 	return nil
+}
+
+func (dm *DeviceManager) GetUsbDevice() (*Device, error) {
+	devices, err := dm.EnumerateDevices()
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range devices {
+		fmt.Println(d.Description())
+		if d.Kind() == DeviceTypeUsb {
+			return d, nil
+		}
+	}
+	return nil, ErrNotFoundUsbDevice
 }
