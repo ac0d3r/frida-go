@@ -3,7 +3,7 @@ package fridago
 /*
 #include "frida-core.h"
 
-void onDetached(FridaSession *session);
+extern void onDetached(FridaSession *session);
 
 void _session_on_detached(FridaSession *session,
             FridaSessionDetachReason reason,
@@ -77,14 +77,18 @@ func (s *Session) CreateScript(name string, source string, runtime ...uint) (*Sc
 		C.g_object_unref(C.gpointer(opts))
 		opts = nil
 	}()
-	C.frida_script_options_set_name(opts, C.CString(name))
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	C.frida_script_options_set_name(opts, cname)
 	C.frida_script_options_set_runtime(opts, fruntime)
 
 	var (
 		gerr    *C.GError
 		fscript *C.FridaScript
 	)
-	fscript = C.frida_session_create_script_sync(s.handle, C.CString(source), opts, nil, &gerr)
+	csource := C.CString(source)
+	defer C.free(unsafe.Pointer(csource))
+	fscript = C.frida_session_create_script_sync(s.handle, csource, opts, nil, &gerr)
 	if gerr != nil {
 		return nil, NewGError(gerr)
 	}
@@ -93,9 +97,11 @@ func (s *Session) CreateScript(name string, source string, runtime ...uint) (*Sc
 
 func (s *Session) SetOnDetachedHandler(ch chan<- struct{}) {
 	if s.onDetachedHandler == 0 {
+		signal := C.CString("detached")
+		defer C.free(unsafe.Pointer(signal))
 		s.onDetachedHandler = C.g_signal_connect_data(
 			C.gpointer(s.handle),
-			C.CString("detached"),
+			signal,
 			C.GCallback(unsafe.Pointer(C._session_on_detached)),
 			nil, nil, 0)
 	}

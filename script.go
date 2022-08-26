@@ -3,7 +3,7 @@ package fridago
 /*
 #include "frida-core.h"
 
-void onMessage(FridaScript * script, const gchar * message);
+extern void onMessage(FridaScript * script, const gchar * message);
 
 void _script_on_message(FridaScript * script,
 	const gchar * message,
@@ -84,9 +84,11 @@ func (s *Script) UnLoad() error {
 
 func (s *Script) SetOnMessageHandler(callback ScriptMessageHandler) {
 	if s.onMessageHandler == 0 {
+		signal := C.CString("message")
+		defer C.free(unsafe.Pointer(signal))
 		s.onMessageHandler = C.g_signal_connect_data(
 			C.gpointer(s.handle),
-			C.CString("message"),
+			signal,
 			C.GCallback(unsafe.Pointer(C._script_on_message)),
 			nil, nil, 0)
 	}

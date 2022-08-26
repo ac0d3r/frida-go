@@ -4,6 +4,7 @@ package fridago
 import "C"
 import (
 	"fmt"
+	"unsafe"
 )
 
 type DeviceType uint
@@ -83,11 +84,18 @@ type SpawnOptions struct {
 
 func (so SpawnOptions) SetTo(handle *C.FridaSpawnOptions) {
 	if len(so.Args) != 0 {
-		gchar, length := slice2carray(so.Args)
+		gchar, length, ps := slice2carray(so.Args)
+		defer func() {
+			for _, p := range ps {
+				C.free(p)
+			}
+		}()
 		C.frida_spawn_options_set_argv(handle, gchar, length)
 	}
 	if len(so.Cwd) != 0 {
-		C.frida_spawn_options_set_cwd(handle, C.CString(so.Cwd))
+		cwd := C.CString(so.Cwd)
+		defer C.free(unsafe.Pointer(cwd))
+		C.frida_spawn_options_set_cwd(handle, cwd)
 	}
 	C.frida_spawn_options_set_stdio(handle, C.FridaStdio(so.Stdio))
 	// TODO
@@ -106,7 +114,9 @@ func (d *Device) Spawn(program string, so ...SpawnOptions) (uint, error) {
 		so[0].SetTo(opts)
 	}
 
-	pid := uint(C.frida_device_spawn_sync(d.handle, C.CString(program), opts, nil, &gerr))
+	cprogram := C.CString(program)
+	defer C.free(unsafe.Pointer(cprogram))
+	pid := uint(C.frida_device_spawn_sync(d.handle, cprogram, opts, nil, &gerr))
 	if gerr != nil {
 		return 0, NewGError(gerr)
 	}
@@ -121,7 +131,9 @@ func (d *Device) GetProcessByName(name string) (uint, error) {
 		opts = nil
 	}()
 
-	process := C.frida_device_get_process_by_name_sync(d.handle, C.CString(name), opts, nil, &gerr)
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	process := C.frida_device_get_process_by_name_sync(d.handle, cname, opts, nil, &gerr)
 	if gerr != nil {
 		return 0, NewGError(gerr)
 	}

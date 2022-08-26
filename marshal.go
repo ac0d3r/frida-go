@@ -21,11 +21,13 @@ func carray2slice(gs **C.gchar, length C.gint) []string {
 	return strs
 }
 
-func slice2carray(strs []string) (**C.gchar, C.gint) {
+func slice2carray(strs []string) (**C.gchar, C.gint, []unsafe.Pointer) {
 	buf := make([]*C.gchar, len(strs))
+	ps := make([]unsafe.Pointer, len(strs))
 	for i := range strs {
-		buf[i] = (*C.gchar)(unsafe.Pointer(C.CString(strs[i])))
+		ps[i] = unsafe.Pointer(C.CString(strs[i]))
+		buf[i] = (*C.gchar)(ps[i])
 	}
 	gs := (**C.gchar)(unsafe.Pointer(&buf[0]))
-	return gs, C.gint(len(strs))
+	return gs, C.gint(len(strs)), ps
 }

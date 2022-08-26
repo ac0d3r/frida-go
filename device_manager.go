@@ -5,6 +5,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"unsafe"
 )
 
 var (
@@ -63,17 +64,23 @@ type RemoteDeviceOptions struct {
 func (r RemoteDeviceOptions) SetTo(handle *C.FridaRemoteDeviceOptions) error {
 	if r.Certificate != "" {
 		var gerr *C.GError
-		cert := C.g_tls_certificate_new_from_pem(C.CString(r.Certificate), -1, &gerr)
+		certificate := C.CString(r.Certificate)
+		defer C.free(unsafe.Pointer(certificate))
+		cert := C.g_tls_certificate_new_from_pem(certificate, -1, &gerr)
 		if gerr != nil {
 			return NewGError(gerr)
 		}
 		C.frida_remote_device_options_set_certificate(handle, cert)
 	}
 	if r.Origin != "" {
-		C.frida_remote_device_options_set_origin(handle, C.CString(r.Origin))
+		origin := C.CString(r.Origin)
+		defer C.free(unsafe.Pointer(origin))
+		C.frida_remote_device_options_set_origin(handle, origin)
 	}
 	if r.Token != "" {
-		C.frida_remote_device_options_set_token(handle, C.CString(r.Token))
+		token := C.CString(r.Token)
+		defer C.free(unsafe.Pointer(token))
+		C.frida_remote_device_options_set_token(handle, token)
 	}
 	if r.KeepaliveInterval != 0 {
 		C.frida_remote_device_options_set_keepalive_interval(handle, C.int(r.KeepaliveInterval))
@@ -96,7 +103,9 @@ func (dm *DeviceManager) AddRemoteDevice(address string, rds ...RemoteDeviceOpti
 	}
 
 	var gerr *C.GError
-	device := C.frida_device_manager_add_remote_device_sync(dm.handle, C.CString(address), opts, nil, &gerr)
+	caddr := C.CString(address)
+	defer C.free(unsafe.Pointer(caddr))
+	device := C.frida_device_manager_add_remote_device_sync(dm.handle, caddr, opts, nil, &gerr)
 	if gerr != nil {
 		return nil, NewGError(gerr)
 	}
@@ -105,7 +114,9 @@ func (dm *DeviceManager) AddRemoteDevice(address string, rds ...RemoteDeviceOpti
 
 func (dm *DeviceManager) RemoveRemoteDevice(address string) error {
 	var gerr *C.GError
-	C.frida_device_manager_remove_remote_device_sync(dm.handle, C.CString(address), nil, &gerr)
+	caddr := C.CString(address)
+	defer C.free(unsafe.Pointer(caddr))
+	C.frida_device_manager_remove_remote_device_sync(dm.handle, caddr, nil, &gerr)
 	if gerr != nil {
 		return NewGError(gerr)
 	}
