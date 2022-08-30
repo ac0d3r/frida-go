@@ -1,3 +1,3 @@
-module github.com/Buzz2d0/fridago
+module github.com/ac0d3r/fridago
 
 go 1.18
